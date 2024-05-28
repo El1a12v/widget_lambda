@@ -1,0 +1,32 @@
+language: minimal
+
+services:
+  - docker
+
+env:
+  global:
+    - IDENTIFIER=$(git rev-parse HEAD)
+    - BRANCH=$TRAVIS_BRANCH
+    - DOCKER_TAG=${BRANCH//\//.}
+    - DOCKER_IMAGE=160digital/widget-service:${DOCKER_TAG}
+    - secure: $DOCKER_USERNAME
+    - secure: $DOCKER_PASSWORD
+
+before_install:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+script:
+  - docker build -t ${DOCKER_IMAGE}:$IDENTIFIER .
+  - docker push ${DOCKER_IMAGE}:$IDENTIFIER
+
+#after_success:
+#  - aws lambda update-function-code --function-name ${APP_NAME}-invokeApi-${ENVIRONMENT} --image-uri ${DOCKER_IMAGE}:${IDENTIFIER} --region ${AWS_REGION}
+
+deploy:
+  - provider: script
+    script: bash ./dev-deploy.sh
+    on:
+      branch: dev
+
+notifications:
+  slack: 160digital:WrE5f6wh9AU6AbmwX87wNSAW
